@@ -46,10 +46,10 @@ without affecting the license of the larger work so long as you:
 Source
 ------
 
-The source code for *mcbuild* is available from the GitHub repo
-`cpburnz/minecraft-python-build`_.
+The source code for *mcpackage* is available from the GitHub repo
+`cpburnz/minecraft-mod-package`_.
 
-.. _`cpburnz/minecraft-python-build`: https://github.com/cpburnz/minecraft-python-build
+.. _`cpburnz/minecraft-mod-package`: https://github.com/cpburnz/minecraft-mod-package
 
 
 Requirements
