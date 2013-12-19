@@ -3,8 +3,8 @@
 =========================================
 
 *mcpackage* is used to compile, obfuscate, and package Minecraft Mods by using
-`Forge`_ and `MCP`_. Its primary use is to build `PyMod`_ and any other mods
-depending on `PyMod`_ for `Minecraft`_.
+`Forge`_ and `MCP`_. Its primary use is to build and package `PyMod`_ and any
+other mods depending on `PyMod`_ for `Minecraft`_.
 
 .. _`Forge`: http://www.minecraftforge.net
 .. _`MCP`: http://mcp.ocean-labs.de
