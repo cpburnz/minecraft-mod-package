@@ -104,3 +104,9 @@ Documentation
 -------------
 
 TODO
+
+
+.. image:: https://d2weczhvl823v0.cloudfront.net/cpburnz/minecraft-mod-package/trend.png
+   :alt: Bitdeli badge
+   :target: https://bitdeli.com/free
+
