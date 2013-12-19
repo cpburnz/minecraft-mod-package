@@ -1,9 +1,14 @@
 
+
+NOTICE
+======
+
+This is still under development, not necessarily stable, lacks formal
+documentation, and has no examples.
+
+
 *mcpackage*: Minecraft Mod Packaging Tool
 =========================================
-
-.. NOTE:: This is still under development, not necessarily stable, lacks
-   formal documentation, and has no examples.
 
 *mcpackage* is used to compile, obfuscate, and package Minecraft Mods by using
 `Forge`_ and `MCP`_. Its primary use is to build `PyMod`_ and any other mods
