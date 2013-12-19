@@ -1,14 +1,26 @@
 
+*mcpackage*: Minecraft Mod Packaging Tool
+=========================================
+
+*mcpackage* is used to compile, obfuscate, and package Minecraft Mods by using
+`Forge`_ and `MCP`_. Its primary use is to build `PyMod`_ and any other mods
+depending on `PyMod`_ for `Minecraft`_.
+
+.. _`Forge`: http://www.minecraftforge.net
+.. _`MCP`: http://mcp.ocean-labs.de
+.. _`PyMod`: https://github.com/cpburnz/minecraft-mod-python
+.. _`Minecraft`: https://minecraft.net
+
 
 NOTICE
-======
+------
 
 This is still under development, not necessarily stable, lacks formal
 documentation, and has no examples.
 
 
 TODO
-====
+----
 
 - Add mcmeta or whatever it is called now (mod description).
 
@@ -21,19 +33,6 @@ TODO
 - Tutorial for how to build and package *pymod*.
 
 - Generate documentation.
-
-
-*mcpackage*: Minecraft Mod Packaging Tool
-=========================================
-
-*mcpackage* is used to compile, obfuscate, and package Minecraft Mods by using
-`Forge`_ and `MCP`_. Its primary use is to build `PyMod`_ and any other mods
-depending on `PyMod`_ for `Minecraft`_.
-
-.. _`Forge`: http://www.minecraftforge.net
-.. _`MCP`: http://mcp.ocean-labs.de
-.. _`PyMod`: https://github.com/cpburnz/minecraft-mod-python
-.. _`Minecraft`: https://minecraft.net
 
 
 Tutorial
