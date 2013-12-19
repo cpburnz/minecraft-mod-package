@@ -7,6 +7,22 @@ This is still under development, not necessarily stable, lacks formal
 documentation, and has no examples.
 
 
+TODO
+====
+
+- Add mcmeta or whatever it is called now (mod description).
+
+- Command to generate skeleton project.
+
+- Command to copy package to minecraft directory.
+
+- Command to run minecraft using proper Forge profile.
+
+- Tutorial for how to build and package *pymod*.
+
+- Generate documentation.
+
+
 *mcpackage*: Minecraft Mod Packaging Tool
 =========================================
 
