@@ -37,7 +37,7 @@ without affecting the license of the larger work so long as you:
 
 - give credit where credit is due,
 
-- and release any custom changes to *mcpackage*.
+- and release any custom changes made to *mcpackage*.
 
 .. _`Mozilla Public License Version 2.0`: http://www.mozilla.org/MPL/2.0
 .. _`FAQ`: http://www.mozilla.org/MPL/2.0/FAQ.html
