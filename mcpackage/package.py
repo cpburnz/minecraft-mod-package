@@ -27,13 +27,10 @@ import yaml.scanner
 from . import util
 
 #: The default build configuration file.
-DEFAULT_CONFIG_FILE = 'build.yaml'
+DEFAULT_CONFIG_FILE = 'mcpackage.yaml'
 
 #: The file to log to.
-LOG_FILE = 'build.log'
-
-#: The file which stores meta-data about files in the build directory.
-META_FILE = 'build.meta'
+LOG_FILE = 'mcpacakge.log'
 
 #: The name of the MCP configuration.
 MCP_CONFIG_FILE = 'mcp.cfg'
@@ -62,19 +59,20 @@ DEFAULT_CONFIG = {
 	'library': {
 		# The directory containing additional libraries required by the mod.
 		'dir': 'lib',
-		# The libraries to package (merge) with the built mod JAR.
-		'package': []
+		# Patterns used to match libraries (JAR or ZIP) to package (merge)
+		# with the built mod JAR.
+		'package': [],
 	},
 	# Settings pertaining to the mod source code.
 	'source': {
-		# The directory containing the Java and PYthon source code for the
+		# The directory containing the Java and Python source code for the
 		# mod.
 		'dir': 'src',
-		# Glob patterns to match java files.
+		# Patterns to match java files.
 		'java': ['*.java'],
-		# Glob patterns used to match python files.
+		# Patterns used to match python files.
 		'python': ['*.py'],
-		# Glob patterns to match assets or any additional files to package.
+		# Patterns to match assets or any additional files to package.
 		'extra': [],
 	}
 }
@@ -242,7 +240,7 @@ class Main(object):
 		Returns the exit code (``int``).
 		"""
 		parser = argparse.ArgumentParser(prog=argv[0], description=__doc__)
-		parser.add_argument('-c', '--config', default=DEFAULT_CONFIG_FILE, help="The build configuration file to use. Default is %(default)r.", metavar="FILE")
+		parser.add_argument('-c', '--config', default=DEFAULT_CONFIG_FILE, help="The package configuration file to use. Default is %(default)r.", metavar="FILE")
 		parser.add_argument('-v', '--verbose', action='store_true', help="Print verbose debugging information.")
 		args = parser.parse_args(argv[1:])
 
