@@ -24,6 +24,8 @@ TODO
 
 - Add mcmeta or whatever it is called now (mod description).
 
+  - https://github.com/MinecraftForge/FML/wiki/FML-mod-information-file
+
 - Command to generate skeleton project.
 
 - Command to copy package to minecraft directory.
