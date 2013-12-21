@@ -22,10 +22,6 @@ documentation, and has no examples.
 TODO
 ----
 
-- Add mcmeta or whatever it is called now (mod description).
-
-  - https://github.com/MinecraftForge/FML/wiki/FML-mod-information-file
-
 - Command to generate skeleton project.
 
 - Command to copy package to minecraft directory.
@@ -35,6 +31,8 @@ TODO
 - Tutorial for how to build and package *pymod*.
 
 - Generate documentation.
+
+  - https://github.com/MinecraftForge/FML/wiki/FML-mod-information-file
 
 
 Tutorial
