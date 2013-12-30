@@ -1,2 +1,4 @@
 include *.rst
 include LICENSE
+recursive-include mcpackage/data *.mo *.po
+recursive-include mcpackage/data *.info *.yaml

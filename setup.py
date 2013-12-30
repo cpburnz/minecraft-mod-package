@@ -21,7 +21,7 @@ setup(
 	description="Minecraft Mod Packaging Tool.",
 	long_description=readme + "\n\n" + changes,
 	classifiers=[
-		"Development Status :: 4 - Beta",
+		"Development Status :: 3 - Alpha",
 		"Intended Audience :: Developers",
 		"License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)",
 		"Operating System :: Microsoft :: Windows",
@@ -35,4 +35,5 @@ setup(
 	],
 	license=__license__,
 	packages=find_packages(),
+	include_package_data=True,
 )

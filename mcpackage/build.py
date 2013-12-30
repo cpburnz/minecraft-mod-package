@@ -95,6 +95,39 @@ CONFIG_PATHSPECS = [
 	('source', 'python'),
 ]
 
+def command(**args):
+	"""
+	Builds and packages the Minecraft Mod.
+
+	`**args` is the keyword arguments to send to the ``BuildMod``
+	constructor.
+	"""
+	return BuildMod(**args).run()
+
+
+class BuildMod(object):
+	"""
+	The ``BuildMod`` class is used to build and package the Minecraft Mod.
+	"""
+
+	def __init__(self, config, verbose=None):
+		"""
+		Initializes the ``BuildMod`` instance.
+
+		*config* (``str``) is the mcpackage configuration file to load.
+
+		*verbose* (``bool``) is whether the verbose debugging information
+		should be printed (``True``), or not (``False``). Default is
+		``None`` for ``False``.
+		"""
+
+		self.config_file = config
+		"""
+		"""
+
+		self.verbose = verbose
+
+
 
 class Main(object):
 	"""

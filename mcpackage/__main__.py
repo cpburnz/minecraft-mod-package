@@ -6,6 +6,6 @@ using Forge and MCP.
 
 import sys
 
-from .package import main
+from . import main
 
-sys.exit(main(sys.argv))
+sys.exit(main.run(sys.argv))

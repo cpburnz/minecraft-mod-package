@@ -1,0 +1,33 @@
+%YAML 1.1
+---
+# The ID of the mod.
+id: ${mod_id}
+# Settings for Minecraft Forge.
+forge:
+  # The Minecraft Forge source directory.
+  dir: ${forge_dir}
+# Build settings.
+build:
+  # The directory to build the mod in.
+  dir: ${build_dir}
+# Settings for additional libraries.
+library:
+  # The directory containing additional libraries required by the mod.
+  dir: ${library_dir}
+  # Patterns used to match libraries (ZIP or JAR) to package (merge) with the
+  # build mod JAR.
+  package:
+    - '# Placeholder'
+# Settings pertaining to the mod source code.
+source:
+  # The directory containg the source code for the mod.
+  dir: ${source_dir}
+  # Patterns used to match java files to compile and package.
+  java:
+    - '*.java'
+  # Patterns used to match python files to compile and package.
+  python:
+    - '*.py'
+  # Patterns used to match assets or any additional files to package.
+  extra:
+    - '/mcmod.info'

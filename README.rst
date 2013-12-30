@@ -22,11 +22,13 @@ documentation, and has no examples.
 TODO
 ----
 
-- Command to generate skeleton project.
+- Create "init" command to generate skeleton project.
 
-- Command to copy package to minecraft directory.
+- Refactor "build" command.
 
-- Command to run minecraft using proper Forge profile.
+- Create "install" command to copy jar to minecraft directory.
+
+- Create "run" command to run minecraft using proper Forge profile.
 
 - Tutorial for how to build and package *pymod*.
 
@@ -107,4 +109,3 @@ TODO
 .. image:: https://d2weczhvl823v0.cloudfront.net/cpburnz/minecraft-mod-package/trend.png
    :alt: Bitdeli badge
    :target: https://bitdeli.com/free
-
