@@ -48,45 +48,103 @@ def run(argv):
 		prog='python -m mcpackage',
 		description=__doc__,
 	)
-	parser.add_argument('--version', action='version', help="Show the mcpackage version number and exit.", version="{} {}".format(__project__, __version__))
+	parser.add_argument('--version', action='version', version="{} {}".format(__project__, __version__), help="""
+		Show the mcpackage version number and exit.
+	""")
 	subparsers = parser.add_subparsers(title="Commands", metavar="command")
 
 	# Init command.
 	parser_init = subparsers.add_parser('init', help="Creates the scaffolding for a new Minecraft Mod.")
 	parser_init.set_defaults(func=lambda args: init_command(**vars(args)))
+
 	group = parser_init.add_argument_group(title="Required Arguments")
-	group.add_argument('--mod-package', required=True, help="The Java package name for the Minecraft Mod. This should only contain lowercase letters and periods.", metavar="PKG")
-	group = parser_init.add_argument_group(title="Default Arguments", description="All relative paths are relative to *mod-dir*.")
-	group.add_argument('--mod-id', default=None, help="The ID for the Minecraft Mod. This should begin with a lowercase letter followed by lowercase letters, numbers, or underscores. Default is the last segment in *mod-package*.", metavar="ID")
-	group.add_argument('--mod-class', default=None, help="The class name for the Minecraft Mod. This should begin with an uppercase letter followed by letters, numbers, or underscores. Default is *mod-id* concatenated with 'Mod'.", metavar="CLASS")
-	group.add_argument('--mod-dir', default=DEFAULT_MOD_DIR, help="The directory to create the Minecraft Mod in. Default is %(default)r.", metavar="DIR")
-	group.add_argument('--config-file', default=DEFAULT_CONFIG_FILE, help="The mcpackage configuration file to generate. Default is %(default)r.", metavar="FILE")
-	group.add_argument('--forge-dir', default=DEFAULT_FORGE_DIR, help="The path to the Minecraft Forge source directory. Default is %(default)r.", metavar="DIR")
-	group.add_argument('--build-dir', default=DEFAULT_BUILD_DIR, help="The directory to build the Minecraft Mod in. Default is %(default)r.", metavar="DIR")
-	group.add_argument('--library-dir', default=DEFAULT_LIBRARY_DIR, help="The directory to contain additional libraries required by the Minecraft Mod. Default is %(default)r.", metavar="DIR")
-	group.add_argument('--source-dir', default=DEFAULT_SOURCE_DIR, help="The directory to contain the source code for the Minecraft Mod. Default is %(default)r.", metavar="DIR")
+	group.add_argument('--mod-name', required=True, metavar="NAME", help="""
+		The name of the Minecraft Mod. This can contain letters, numbers,
+		and symbols. E.g., 'My Awesome Mod'.
+	""")
+	group.add_argument('--mod-namespace', required=True, metavar="NS", help="""
+		The Java package namespace for the Minecraft Mod. This should only
+		contain lowercase letters and periods. E.g., 'myname.myawesomemod'.
+	""")
+	group.add_argument('--mod-type', choices=['java', 'python'], required=True, metavar="TYPE", help="""
+		The type of Minecraft Mod scaffolding to create. *java* is for a
+		normal mod written in Java. *python* is for a mod written primarily
+		in Python with Java bootstrapping (requires PyMod).
+	""")
+
+	group = parser_init.add_argument_group(title="Default Arguments", description="""
+		All relative paths are relative to *mod-dir*.
+	""")
+	group.add_argument('--mod-id', default=None, metavar="ID", help="""
+		The ID for the Minecraft Mod. This should begin with a lowercase
+		letter followed by lowercase letters, numbers, or underscores. E.g.,
+		'myawesomemod'. Default is to lowercase letters and remove
+		non-alphanumeric characters from *mod-name*.
+	""")
+	group.add_argument('--mod-class', default=None, metavar="CLASS", help="""
+		The class name for the Minecraft Mod. This should begin with an
+		uppercase letter followed by letters, numbers, or underscores. E.g.,
+		'MyAwesomeMod'. Default is to remove non-alphanumeric characters
+		from *mod-name* and append with 'Mod' if it does not end with 'Mod'.
+	""")
+	group.add_argument('--mod-dir', default=DEFAULT_MOD_DIR, metavar="DIR", help="""
+		The directory to create the Minecraft Mod in. Default is %(default)r.
+	""")
+	group.add_argument('--config-file', default=DEFAULT_CONFIG_FILE, metavar="FILE", help="""
+		The mcpackage configuration file to generate. Default is %(default)r.
+	""")
+	group.add_argument('--forge-dir', default=DEFAULT_FORGE_DIR, metavar="DIR", help="""
+		The path to the Minecraft Forge source directory. Default is
+		%(default)r.
+	""")
+	group.add_argument('--build-dir', default=DEFAULT_BUILD_DIR, metavar="DIR", help="""
+		The directory to build the Minecraft Mod in. Default is %(default)r.
+	""")
+	group.add_argument('--library-dir', default=DEFAULT_LIBRARY_DIR, metavar="DIR", help="""
+		The directory to contain additional libraries required by the
+		Minecraft Mod. Default is %(default)r.
+	""")
+	group.add_argument('--source-dir', default=DEFAULT_SOURCE_DIR, metavar="DIR", help="""
+		The directory to contain the source code for the Minecraft Mod.
+		Default is %(default)r.
+	""")
+
 	group = parser_init.add_argument_group(title="Optional Arguments")
-	parser_init.add_argument('-v', '--verbose', action='count', help="Print verbose debugging information.")
+	parser_init.add_argument('-v', '--verbose', action='count', help="""
+		Print verbose debugging information.
+	""")
 
 	# Build command.
 	parser_build = subparsers.add_parser('build', help="Build and package the Minecraft Mod.")
 	parser_build.set_defaults(func=lambda args: build_command(**vars(args)))
-	parser_build.add_argument('-c', '--config-file', default=DEFAULT_CONFIG_FILE, help="The mcpackage configuration file to use. Default is %(default)r.", metavar="FILE")
-	parser_build.add_argument('-v', '--verbose', action='count', help="Print verbose debugging information.")
+	parser_build.add_argument('-c', '--config-file', default=DEFAULT_CONFIG_FILE, metavar="FILE", help="""
+		The mcpackage configuration file to use. Default is %(default)r.
+	""")
+	parser_build.add_argument('-v', '--verbose', action='count', help="""
+		Print verbose debugging information.
+	""")
 
 	# Install command.
 	# - TODO: Determine proper arguments.
 	parser_install = subparsers.add_parser('install', help="Install the Minecraft Mod.")
 	parser_install.set_defaults(func=lambda args: install_command(**vars(args)))
-	parser_install.add_argument('-c', '--config-file', default=DEFAULT_CONFIG_FILE, help="The mcpackage configuration file to use. Default is %(default)r.", metavar="FILE")
-	parser_install.add_argument('-v', '--verbose', action='count', help="Print verbose debugging information.")
+	parser_install.add_argument('-c', '--config-file', default=DEFAULT_CONFIG_FILE, metavar="FILE", help="""
+		The mcpackage configuration file to use. Default is %(default)r.
+	""")
+	parser_install.add_argument('-v', '--verbose', action='count', help="""
+		Print verbose debugging information.
+	""")
 
 	# Run command.
 	# - TODO: Determine proper arguments.
 	parser_run = subparsers.add_parser('run', help="Run Minecraft.")
 	parser_run.set_defaults(func=lambda args: run_command(**vars(args)))
-	parser_run.add_argument('-c', '--config-file', default=DEFAULT_CONFIG_FILE, help="The mcpackage configuration file to use. Default is %(default)r.", metavar="FILE")
-	parser_run.add_argument('-v', '--verbose', action='count', help="Print verbose debugging information.")
+	parser_run.add_argument('-c', '--config-file', default=DEFAULT_CONFIG_FILE, metavar="FILE", help="""
+		The mcpackage configuration file to use. Default is %(default)r.
+	""")
+	parser_run.add_argument('-v', '--verbose', action='count', help="""
+		Print verbose debugging information.
+	""")
 
 	# Parse command-line arguments.
 	args = parser.parse_args(argv[1:])

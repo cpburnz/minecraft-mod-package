@@ -10,6 +10,7 @@ import io
 import json
 import logging
 import os
+import re
 import string # pylint: disable=W0402
 import sys
 import traceback
@@ -19,16 +20,32 @@ import pkg_resources
 from . import __name__ as MCPACKAGE
 
 #: The template mcmod info file.
-MCMOD_TEMPLATE_FILE = 'data/templates/mcmod.info'
+MCMOD_TEMPLATE_FILE = {
+	'java': 'data/templates/mcmod.info',
+	'python': 'data/templates/mcmod.info',
+}
 
 #: The template mcpackage configuration file.
-MCPACKAGE_TEMPLATE_FILE = 'data/templates/mcpackage.yaml'
+MCPACKAGE_TEMPLATE_FILE = {
+	'java': 'data/templates/java/mcpackage.yaml',
+	'python': 'data/templates/python/mcpackage.yaml',
+}
 
 #: The template java mod file.
-JAVA_TEMPLATE_FILE = 'mod.java'
+JAVA_MOD_TEMPLATE_FILE = {
+	'java': 'data/templates/java/mod.java',
+	'python': 'data/templates/python/mod.java',
+}
+
+#: The template python init file.
+PYTHON_INIT_TEMPLATE_FILE = {
+	'python': 'data/templates/python/__init__.py'
+}
 
 #: The template python mod file.
-PYTHON_TEMPLATE_FILE = 'mod.py'
+PYTHON_MOD_TEMPLATE_FILE = {
+	'python': 'data/templates/python/mod.py'
+}
 
 def command(**args):
 	"""
@@ -47,12 +64,17 @@ class InitCommand(object):
 	Minecraft Mod.
 	"""
 
-	def __init__(self, mod_package, mod_dir, config_file, forge_dir, build_dir, library_dir, source_dir, mod_id=None, mod_class=None, verbose=None):
+	def __init__(self, mod_name, mod_namespace, mod_type, mod_dir, config_file, forge_dir, build_dir, library_dir, source_dir, mod_id=None, mod_class=None, verbose=None):
 		"""
 		Initializes the ``InitCommand`` instance.
 
-		*mod_package* (``str``) is the Java Package name for the Minecraft
-		Mod.
+		*mod_name* (``str``) is the name of the Minecraft Mod.
+
+		*mod_namespace* (``str``) is the Java package namespace for the
+		Minecraft Mod.
+
+		*mod_type* (``str``) is the type of Minecraft Mod scaffolding to
+		create. This must be either 'java' or 'python'.
 
 		*mod_dir* (``str``) is the directory to create the Minecraft Mod in.
 
@@ -70,10 +92,12 @@ class InitCommand(object):
 		for the mod.
 
 		*mod_id* (``str``) is the ID for the Minecraft Mod. Default is
-		``None`` for the last segment in *mod_package*.
+		``None`` to lowercase letters and remove non-alphanumeric characters
+		from *mod_name*.
 
-		*mod_class* (``str``) is the class name for the Minecraft Mod.
-		Default is ``None`` for *mod_id* concatenated with 'Mod'.
+		*mod_class* (``str``) is the Java class name for the Minecraft Mod.
+		Default is ``None`` to remove non-alphanumeric characters from
+		*mod_name* and append with 'Mod' if it does not end with 'Mod'.
 
 		*verbose* (``int``) is the level of verbose debugging information to
 		be printed. Default is ``None`` for `0`.
@@ -116,9 +140,21 @@ class InitCommand(object):
 		*mod_id* (``str``) is the ID of the mod.
 		"""
 
-		self.mod_package = mod_package
+		self.mod_name = mod_name
 		"""
-		*mod_package* (``str``) is the Java Package for the Minecraft Mod.
+		*mod_name* (``str``) is the name of the Minecraft Mod.
+		"""
+
+		self.mod_namespace = mod_namespace
+		"""
+		*mod_namespace* (``str``) is the Java package namespace for the
+		Minecraft Mod.
+		"""
+
+		self.mod_type = None
+		"""
+		*mod_type* (``str``) is the type of Minecraft Mod scaffolding to
+		create. This must be either 'java' or 'python'.
 		"""
 
 		self.log = None
@@ -138,14 +174,21 @@ class InitCommand(object):
 		be printed.
 		"""
 
+		assert mod_type in ('java', 'python'), "mod_type:{!r} must be:{!r}.".format(['java', 'python'])
+
 		if not mod_id:
-			mod_id = mod_package.rsplit('.', 1)[1]
+			# Generate mod ID from name.
+			mod_id = re.sub('\\W', '', mod_name).lower()
 
 		if not mod_class:
-			mod_class = mod_id + 'Mod'
+			# Generate mod class from name.
+			mod_class = re.sub('\\W', '', mod_name)
+			if not mod_class.endswith('Mod'):
+				mod_class += 'Mod'
 
-		self.mod_id = mod_id
 		self.mod_class = mod_class
+		self.mod_id = mod_id
+		self.mod_type = mod_type
 
 	def init_logging(self):
 		"""
@@ -229,7 +272,6 @@ class InitCommand(object):
 		except OSError as e:
 			if e.errno != errno.EEXIST:
 				raise
-		del library_dir
 
 		# Create source directory.
 		source_dir = os.path.normpath(os.path.join(self.mod_dir, self.source_dir))
@@ -239,29 +281,39 @@ class InitCommand(object):
 		except OSError as e:
 			if e.errno != errno.EEXIST:
 				raise
-		del source_dir
+
+		# Create namespace directory.
+		namespace_dir = os.path.join(source_dir, *self.mod_namespace.split('.'))
+		self.log.info("Create namespace directory {!r}.".format(namespace_dir))
+		try:
+			os.makedirs(namespace_dir)
+		except OSError as e:
+			if e.errno != errno.EEXIST:
+				raise
 
 		# Encode values as JSON because they are compatible in both JSON and
 		# YAML files.
-		encode = json.JSONEncoder(ensure_ascii=False).encode
+		json_encode = json.JSONEncoder(ensure_ascii=False).encode
 
 		# Load mcpackage configuration template.
-		self.log.info("Load {!r}.".format(MCPACKAGE_TEMPLATE_FILE))
-		config_tpl = pkg_resources.resource_string(MCPACKAGE, MCPACKAGE_TEMPLATE_FILE)
+		config_file = MCPACKAGE_TEMPLATE_FILE[self.mod_type]
+		self.log.info("Load {!r}.".format(config_file))
+		config_tpl = pkg_resources.resource_string(MCPACKAGE, config_file)
+		del config_file
 
 		# Generate mcpackage configuration.
-		self.log.info("Generate {!r}.".format(os.path.basename(self.config_file)))
+		config_file = os.path.normpath(os.path.join(self.mod_dir, self.config_file))
+		self.log.info("Generate {!r}.".format(os.path.basename(config_file)))
 		config_str = string.Template(config_tpl).substitute(
-			build_dir=encode(self.build_dir),
-			forge_dir=encode(self.forge_dir),
-			library_dir=encode(self.library_dir),
-			mod_id=encode(self.mod_id),
-			source_dir=encode(self.source_dir),
+			build_dir=json_encode(self.build_dir),
+			forge_dir=json_encode(self.forge_dir),
+			library_dir=json_encode(self.library_dir),
+			mod_id=json_encode(self.mod_id),
+			source_dir=json_encode(self.source_dir),
 		)
 		del config_tpl
 
 		# Save mcpackage configuration file.
-		config_file = os.path.normpath(os.path.join(self.mod_dir, self.config_file))
 		self.log.info("Create {!r}.".format(config_file))
 		with io.open(config_file, mode='w', encoding='UTF-8') as fh:
 			fh.write(config_str)
@@ -269,19 +321,27 @@ class InitCommand(object):
 		del config_file
 
 		# Load mcmod info template.
-		self.log.info("Load {!r}.".format(MCMOD_TEMPLATE_FILE))
-		info_tpl = pkg_resources.resource_string(MCPACKAGE, MCMOD_TEMPLATE_FILE)
+		info_file = MCMOD_TEMPLATE_FILE[self.mod_type]
+		self.log.info("Load {!r}.".format(info_file))
+		info_tpl = pkg_resources.resource_string(MCPACKAGE, info_file)
+		del info_file
 
 		# Generate mcmod info.
-		self.log.info("Generate 'mcmod.info'.")
-		info_str = string.Template(info_str).substitute(
-			mc_version=encode('1.6.2'), # TODO: Read the minecraft version from Forge.
-			mod_id=encode(self.mod_id),
+		info_file = os.path.join(source_dir, 'mcmod.info')
+		self.log.info("Generate {!r}.".format(os.path.basename(info_file)))
+		mod_hard_deps = ['Forge']
+		if self.mod_type == 'python':
+			mod_hard_deps.append('pymod')
+		info_str = string.Template(info_tpl).substitute(
+			mc_version=json_encode('1.6.2'), # TODO: Read the minecraft version from Forge.
+			mod_id=json_encode(self.mod_id),
+			mod_name=json_encode(self.mod_name),
+			mod_hard_deps=json_encode(mod_hard_deps),
+			mod_soft_deps=json_encode(mod_hard_deps),
 		)
 		del info_tpl
 
 		# Save mcmod info file.
-		info_file = os.path.normpath(os.path.join(self.mod_dir, self.source_dir, 'mcmod.info'))
 		self.log.info("Create {!r}.".format(info_file))
 		with io.open(info_file, mode='w', encoding='UTF-8') as fh:
 			fh.write(info_str)
@@ -289,12 +349,81 @@ class InitCommand(object):
 		del info_file
 
 		# Load java mod template.
-		# - TODO: Finalize format of Java mod and names of Java classes.
-		self.log.info("Load {!r}.".format(JAVA_TEMPLATE_FILE))
-		java_tpl = pkg_resources.resource_string(MCPACKAGE, JAVA_TEMPLATE_FILE)
+		mod_file = JAVA_MOD_TEMPLATE_FILE[self.mod_type]
+		self.log.info("Load {!r}.".format(mod_file))
+		mod_tpl = pkg_resources.resource_string(MCPACKAGE, mod_file)
+		del mod_file
 
-		# TODO: Generate mod java file.
+		# Generate java mod file.
+		mod_file = os.path.join(namespace_dir, self.mod_name + '.java')
+		self.log.info("Generate {!r}.".format(os.path.basename(mod_file)))
+		mod_str = string.Template(mod_tpl).substitute(
+			mod_class=self.mod_class,
+			mod_id=self.mod_id,
+			mod_package=self.mod_namespace,
+		)
+		del mod_tpl
 
-		# TODO: Generate mod python file.
+		# Save java mod file.
+		self.log.info("Create {!r}.".format(mod_file))
+		with io.open(mod_file, mode='w', encoding='UTF-8') as fh:
+			fh.write(mod_str)
+		del mod_str
+		del mod_file
 
-		raise NotImplementedError("TODO")
+		if self.mod_type == 'python':
+			# Create python directory.
+			python_dir = os.path.join(namespace_dir, 'py')
+			self.log.info("Create python directory {!r}.".format(python_dir))
+			try:
+				os.makedirs(python_dir)
+			except OSError as e:
+				if e.errno != errno.EEXIST:
+					raise
+
+			# Load python init template.
+			init_file = PYTHON_INIT_TEMPLATE_FILE[self.mod_type]
+			self.log.info("Load {!r}.".format(init_file))
+			init_tpl = pkg_resources.resource_string(MCPACKAGE, init_file)
+			del init_file
+
+			# Generate python init file.
+			init_file = os.path.join(python_dir, '__init__.py')
+			self.log.info("Generate {!r}.".format(os.path.basename(init_file)))
+			init_str = string.Template(init_tpl).substitute(
+				mod_class=self.mod_class,
+				mod_namespace=self.mod_namespace,
+			)
+			del init_tpl
+
+			# Save python init file.
+			self.log.info("Create {!r}.".format(init_file))
+			with io.open(init_file, mode='w', encoding='UTF-8'):
+				fh.write(init_str)
+			del init_str
+			del init_file
+
+			# Load python mod template.
+			mod_file = PYTHON_MOD_TEMPLATE_FILE[self.mod_type]
+			self.log.info("Load {!r}.".format(mod_file))
+			mod_tpl = pkg_resources.resource_string(MCPACKAGE, mod_file)
+			del mod_file
+
+			# Generate python mod file.
+			mod_file = os.path.join(python_dir, 'mod.py')
+			self.log.info("Generate {!r}.".format(os.path.basename(mod_file)))
+			mod_str = string.Template(mod_tpl).substitute(
+				mod_class=self.mod_class,
+				mod_name=self.mod_name,
+			)
+			del mod_tpl
+
+			# Save python mod file.
+			self.log.info("Create {!r}.".format(mod_file))
+			with io.open(mod_file, mode='w', encoding='UTF-8'):
+				fh.write(mod_str)
+			del mod_str
+			del mod_file
+
+		self.log.info("Done.")
+		return 0

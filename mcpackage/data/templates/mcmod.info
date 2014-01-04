@@ -3,19 +3,19 @@
 	"modlist": [
 		{
 			"modid": ${mod_id},
-			"name": "Name for mod here",
+			"name": ${mod_name},
 			"description": "Description for mod here.",
 			"version": "0.1.0",
 			"mcversion": ${mc_version},
-			"url": "http://example.com/",
+			"url": "http://example.com/url/for/mod/here",
 			"updateUrl": "",
 			"authors": ["Author of mod here"],
 			"credits": "",
 			"logoFile": "",
 			"screenshots": [],
 			"parent": "",
-			"requiredMods": ["Forge"],
-			"dependencies": [],
+			"requiredMods": ${mod_hard_deps},
+			"dependencies": ${mod_hard_deps},
 			"dependants": [],
 			"useDependencyInformation": "true"
 		}
