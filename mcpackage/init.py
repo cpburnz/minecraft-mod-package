@@ -174,7 +174,7 @@ class InitCommand(object):
 		be printed.
 		"""
 
-		assert mod_type in ('java', 'python'), "mod_type:{!r} must be:{!r}.".format(['java', 'python'])
+		assert mod_type in ('java', 'python'), "mod_type:{!r} must be:{!r}.".format(mod_type, ['java', 'python'])
 
 		if not mod_id:
 			# Generate mod ID from name.
