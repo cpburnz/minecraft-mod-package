@@ -22,8 +22,6 @@ documentation, and has no examples.
 TODO
 ----
 
-- Create "init" command to generate skeleton project.
-
 - Refactor "build" command.
 
 - Create "install" command to copy jar to minecraft directory.
