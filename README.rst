@@ -36,6 +36,10 @@ TODO
 
   - https://github.com/MinecraftForge/FML/wiki/FML-mod-information-file
 
+- Later:
+
+  - Make "init" command interactive.
+
 
 Tutorial
 --------

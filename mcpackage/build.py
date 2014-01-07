@@ -2,9 +2,8 @@
 """
 This script compiles, obfuscates, and packages a Minecraft Mod.
 """
-from __future__ import print_function
+from __future__ import print_function, unicode_literals
 
-import argparse
 import errno
 import io
 import logging
@@ -12,7 +11,6 @@ import os
 import os.path
 import subprocess
 import sys
-import textwrap
 import traceback
 import zipfile
 try:
@@ -21,13 +19,8 @@ except ImportError:
 	import configparser # pylint: disable=F0401
 
 import pathspec
-import yaml
-import yaml.scanner
 
 from . import util
-
-#: The default build configuration file.
-DEFAULT_CONFIG_FILE = 'mcpackage.yaml'
 
 #: The file to log to.
 LOG_FILE = 'mcpacakge.log'
@@ -99,54 +92,45 @@ def command(**args):
 	"""
 	Builds and packages the Minecraft Mod.
 
-	`**args` is the keyword arguments to send to the ``BuildMod``
-	constructor.
+	`**args` is the keyword arguments to send to ``BuildCommand()``.
+
+	Returns the exit code (``int``).
 	"""
-	return BuildMod(**args).run()
+	return BuildCommand(**args).run()
 
 
-class BuildMod(object):
+class BuildCommand(object):
 	"""
-	The ``BuildMod`` class is used to build and package the Minecraft Mod.
-	"""
-
-	def __init__(self, config, verbose=None):
-		"""
-		Initializes the ``BuildMod`` instance.
-
-		*config* (``str``) is the mcpackage configuration file to load.
-
-		*verbose* (``bool``) is whether the verbose debugging information
-		should be printed (``True``), or not (``False``). Default is
-		``None`` for ``False``.
-		"""
-
-		self.config_file = config
-		"""
-		"""
-
-		self.verbose = verbose
-
-
-
-class Main(object):
-	"""
-	The ``Main`` class is used to run this script.
+	The ``BuildCommand`` class is used to build and package the Minecraft
+	Mod.
 	"""
 
-	def __init__(self):
+	def __init__(self, config_file, verbose=None):
 		"""
-		Initializes the ``Main`` instance.
+		Initializes the ``BuildCommand`` instance.
+
+		*config_file* (``str``) is the mcpackage configuration file to
+		generate.
+
+		*verbose* (``int``) is the level of verbose debugging information to
+		be printed. Default is ``None`` for `0`.
+
+		- `0`: print no debugging information.
+
+		- `1`: print some debugging information.
+
+		- `2`: print lots of debugging information.
 		"""
 
 		self.config = None
 		"""
-		*config* (``dict``) is the configuration.
+		*config* (``dict``) is the loaded mcpackage configuration.
 		"""
 
-		self.config_file = None
+		self.config_file = config_file
 		"""
-		*config_file* (``str``) is the configuration to load.
+		*config_file* (``str``) is the mcpackage configuration file to
+		generate.
 		"""
 
 		self.name = None
@@ -159,9 +143,9 @@ class Main(object):
 		*log* (``logging.Logger``) is the logger for this script.
 		"""
 
-		self.verbose = None
+		self.verbose = verbose or 0
 		"""
-		*verbose* (``bool``) is whether verbose debugging information should
+		*verbose* (``int``) is the level of verbose debugging information to
 		be printed.
 		"""
 
@@ -169,34 +153,11 @@ class Main(object):
 		"""
 		Loads the configuration.
 		"""
-		print("Load {!r}...".format(self.config_file), end=''); sys.stdout.flush()
-		try:
-			with io.open(self.config_file, mode='r', encoding='UTF-8') as fh:
-				config = yaml.safe_load(fh)
-		except yaml.scanner.ScannerError as e:
-			context = (e.context or '').lower()
-			problem = (e.problem or '').lower()
-			if context == 'while scanning for the next token' and problem == 'found character {!r} that cannot start any token'.format('\t'):
-				# Give a friendly message if a tab is mistakenly used for
-				# indentation.
-				mark = e.problem_mark
-				e.note = "\n{info}\n\n{source}\n{here}\n{hint}".format(
-					info=textwrap.fill(textwrap.dedent("""
-						Found TAB character being used for indentation in {name!r}
-						on line {line}, column {column}:
-					""".format(
-						name=mark.name,
-						line=mark.line + 1,
-						column=mark.column + 1,
-					))).strip(),
-					source=util.get_line(self.config_file, mark.line).rstrip(),
-					here=' ' * mark.column + '^',
-					hint=textwrap.fill(textwrap.dedent("""
-						Use spaces for indentation instead.
-					""")).strip()
-				)
-			raise
-		print("done")
+		# Load config.
+		if self.verbose >= 1:
+			print("Load {!r}.".format(self.config_file))
+		with io.open(self.config_file, mode='r', encoding='UTF-8') as fh:
+			config = util.load_config(fh)
 
 		# Merge defaults into loaded config.
 		self.config = util.merge_config(DEFAULT_CONFIG, config)
@@ -231,80 +192,89 @@ class Main(object):
 		build_dir = self.config['build']['dir']
 		if not os.path.exists(build_dir):
 			# Make sure build directory exists.
-			print("Create {!r}...".format(os.path.basename(build_dir)), end=''); sys.stdout.flush()
+			if self.verbose >= 1:
+				print("Create {!r}.".format(build_dir))
 			try:
 				os.makedirs(build_dir)
 			except OSError as e:
 				if e.errno != errno.EEXIST:
 					raise
-			print("done")
 
 	def init_logging(self):
 		"""
-		Initializes logging.
+		Initialize logging.
 		"""
+		if self.verbose >= 2:
+			log_level = logging.DEBUG
+		elif self.verbose >= 1:
+			log_level = logging.INFO
+		else:
+			log_level = logging.WARNING
+
+		self.log = logging.getLogger()
+		self.log.setLevel(logging.NOTSET)
+
 		build_dir = self.config['build']['dir']
 		log_dir = os.path.join(build_dir, 'log')
 		log_file = os.path.join(log_dir, LOG_FILE)
-		print("Log to {!r}...".format(util.short_path(log_file, build_dir)), end=''); sys.stdout.flush()
+		if self.verbose >= 1:
+			print("Create {!r}.".format(log_file))
 		try:
 			os.mkdir(log_dir)
 		except OSError as e:
 			if e.errno != errno.EEXIST:
 				raise
-		self.log = logging.getLogger()
-		self.log.setLevel(logging.NOTSET)
+
+		if self.verbose >= 1:
+			print("Log to {!r}.".format(log_file))
 		stream_handler = logging.StreamHandler(stream=sys.stdout)
-		stream_handler.setLevel(logging.DEBUG if self.verbose else logging.INFO)
+		stream_handler.setLevel(log_level)
 		stream_handler.setFormatter(logging.Formatter(fmt='[%(name)s] %(levelname)s: %(message)s'))
 		self.log.addHandler(stream_handler)
 		file_handler = logging.FileHandler(log_file)
-		file_handler.setLevel(logging.DEBUG if self.verbose else logging.INFO)
+		file_handler.setLevel(log_level)
 		file_handler.setFormatter(logging.Formatter(fmt='%(asctime)s [%(name)s] %(levelname)s: %(message)s', datefmt='%Y-%m-%d %H:%M:%S%z'))
 		self.log.addHandler(file_handler)
-		print("done")
-
-	def main(self, argv):
-		"""
-		Runs this script.
-
-		*argv* (**sequence**) contains the script arguments.
-
-		Returns the exit code (``int``).
-		"""
-		parser = argparse.ArgumentParser(prog=argv[0], description=__doc__)
-		parser.add_argument('-c', '--config', default=DEFAULT_CONFIG_FILE, help="The package configuration file to use. Default is %(default)r.", metavar="FILE")
-		parser.add_argument('-v', '--verbose', action='store_true', help="Print verbose debugging information.")
-		args = parser.parse_args(argv[1:])
-
-		self.config_file = args.config
-		self.verbose = args.verbose
-
-		try:
-			# Load configuration.
-			self.init_config()
-
-			# Initialize logging.
-			self.init_logging()
-
-		except:
-			traceback.print_exc()
-			print("Exiting because of error.")
-			return 1
-
-		try:
-			# Actually build the mod.
-			exit = self.run() # pylint: disable=W0622
-		except:
-			self.log.exception("Failed to build mod.")
-			exit = 1
-		if exit:
-			print("Exiting because of error.")
-		return exit
 
 	def run(self):
 		"""
-		Actually performs the logic of the script.
+		Runs the "build" command.
+
+		Returns the exit code (``int``).
+		"""
+		# Load config.
+		try:
+			self.init_config()
+		except:
+			traceback.print_exc(file=sys.stderr)
+			print("Failed to load configuration.", file=sys.stderr)
+			if self.verbose >= 1:
+				print("Exiting because of error.")
+			return 1
+
+		# Initialize logging.
+		try:
+			self.init_logging()
+		except:
+			traceback.print_exc(file=sys.stderr)
+			print("Failed to initialize logging.", file=sys.stderr)
+			if self.verbose >= 1:
+				print("Exiting because of error.")
+			return 1
+
+		# Build mod.
+		try:
+			result = self.run_work()
+		except:
+			self.log.error("Failed to build mod.", exc_info=sys.exc_info())
+			result = 1
+		if result:
+			self.log.info("Exiting because of error.")
+		return result
+
+	def run_work(self):
+		"""
+		Perform the actual work of the "build" command.
 
 		Returns the exit code (``int``).
 		"""
@@ -393,7 +363,7 @@ class Main(object):
 		# Compile mod.
 		self.log.info("Compile mod.")
 		if IS_WINDOWS:
-			command = ['recompile.bat']
+			command = ['recompile.bat'] # pylint: disable=W0621
 		else:
 			command = ['./recompile.sh']
 		command += ['-c', mcp_file]
@@ -477,17 +447,3 @@ class Main(object):
 				del path, lib_file, info
 
 		return 0
-
-
-def main(argv):
-	"""
-	Runs this script.
-
-	*argv* (**sequence**) contains the script arguments.
-
-	Returns the exit code (``int``).
-	"""
-	return Main().main(argv)
-
-if __name__ == '__main__':
-	sys.exit(main(sys.argv))

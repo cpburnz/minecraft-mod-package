@@ -2,12 +2,19 @@
 """
 This module contains utility functions.
 """
+from __future__ import unicode_literals
 
 import errno
 import functools
 import itertools
+import io
+import os
 import os.path
 import shutil
+import textwrap
+
+import yaml
+import yaml.scanner
 
 def get_line(file, line): # pylint: disable=W0622
 	"""
@@ -46,6 +53,52 @@ def get_nested_value(data, keys):
 	"""
 	return functools.reduce(dict.get, keys, data)
 
+def load_config(file): # pylint: disable=W0622
+	"""
+	Loads the configuration.
+
+	*file* is either the ``file`` to read, or hte path (``str``) of the
+	file to read.
+
+	Returns the configuration (``dict``).
+	"""
+	if callable(getattr(file, 'read', None)):
+		fh = file
+		close = False
+	else:
+		fh = io.open(file, mode='r', encoding='UTF-8')
+		close = True
+	try:
+		config = yaml.safe_load(fh)
+	except yaml.scanner.ScannerError as e:
+		context = (e.context or '').lower()
+		problem = (e.problem or '').lower()
+		if context == 'while scanning for the next token' and problem == 'found character {!r} that cannot start any token'.format('\t'):
+			# Give a friendly message if a tab is mistakenly used for
+			# indentation.
+			fh.seek(0, os.SEEK_SET)
+			mark = e.problem_mark
+			e.note = "\n{info}\n\n{source}\n{here}\n{hint}".format(
+				info=textwrap.fill(textwrap.dedent("""
+					Found TAB character being used for indentation in {name!r}
+					on line {line}, column {column}:
+				""".format(
+					name=mark.name,
+					line=mark.line + 1,
+					column=mark.column + 1,
+				))).strip(),
+				source=get_line(fh, mark.line).rstrip(),
+				here=' ' * mark.column + '^',
+				hint=textwrap.fill(textwrap.dedent("""
+					Use spaces for indentation instead.
+				""")).strip()
+			)
+		raise
+	finally:
+		if close:
+			fh.close()
+	return config
+
 def merge_config(base, update):
 	"""
 	Merges two configurations recursively.
@@ -57,7 +110,7 @@ def merge_config(base, update):
 	Returns the merged configuration (``dict``).
 	"""
 	merge = base.copy()
-	for key, update_value in update.iteritems():
+	for key, update_value in update.items():
 		if key in base:
 			if update_value is not None:
 				base_value = base[key]
@@ -210,7 +263,7 @@ def sync_files(src, dest, files=None, keep=None):
 				os.remove(dest_full)
 
 	# Copy remaining files which were not handled.
-	for file_path in src_files.iterkeys():
+	for file_path in src_files:
 		dest_full = os.path.join(dest_dir, file_path)
 		src_full = os.path.join(src_dir, file_path)
 

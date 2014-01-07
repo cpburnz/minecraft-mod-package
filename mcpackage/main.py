@@ -2,6 +2,7 @@
 """
 Minecraft Mod Packaging Tool.
 """
+from __future__ import unicode_literals
 
 import argparse
 import gettext
@@ -113,14 +114,21 @@ def run(argv):
 	parser_init.add_argument('-v', '--verbose', action='count', help="""
 		Print verbose debugging information.
 	""")
+	parser_init.add_argument('--force', action='store_true', default=False, help="""
+		Force the initialization of a new Minecraft Mod. If not set, a new
+		Mod cannot be initialized if *mod-dir* is not empty. WARNING: This
+		will override any existing mod files.
+	""")
 
 	# Build command.
 	parser_build = subparsers.add_parser('build', help="Build and package the Minecraft Mod.")
 	parser_build.set_defaults(func=lambda args: build_command(**vars(args)))
-	parser_build.add_argument('-c', '--config-file', default=DEFAULT_CONFIG_FILE, metavar="FILE", help="""
+
+	group = parser_build.add_argument_group(title="Default Arguments")
+	group.add_argument('--config-file', default=DEFAULT_CONFIG_FILE, metavar="FILE", help="""
 		The mcpackage configuration file to use. Default is %(default)r.
 	""")
-	parser_build.add_argument('-v', '--verbose', action='count', help="""
+	group.add_argument('-v', '--verbose', action='count', help="""
 		Print verbose debugging information.
 	""")
 

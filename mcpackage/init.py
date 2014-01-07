@@ -3,7 +3,7 @@
 This module implements the "init" command which is used to create the
 scaffolding for a new Minecraft Mod.
 """
-from __future__ import print_function
+from __future__ import print_function, unicode_literals
 
 import errno
 import io
@@ -53,7 +53,7 @@ def command(**args):
 
 	`**args` is the keyword arguments to send to ``InitCommand()``.
 
-		Returns the exit code (``int``).
+	Returns the exit code (``int``).
 	"""
 	return InitCommand(**args).run()
 
@@ -64,7 +64,7 @@ class InitCommand(object):
 	Minecraft Mod.
 	"""
 
-	def __init__(self, mod_name, mod_namespace, mod_type, mod_dir, config_file, forge_dir, build_dir, library_dir, source_dir, mod_id=None, mod_class=None, verbose=None):
+	def __init__(self, mod_name, mod_namespace, mod_type, mod_dir, config_file, forge_dir, build_dir, library_dir, source_dir, mod_id=None, mod_class=None, verbose=None, force=None, **_):
 		"""
 		Initializes the ``InitCommand`` instance.
 
@@ -78,7 +78,7 @@ class InitCommand(object):
 
 		*mod_dir* (``str``) is the directory to create the Minecraft Mod in.
 
-		*config_file* (``str``) is the **mcpackage** configuration file to
+		*config_file* (``str``) is the mcpackage configuration file to
 		generate.
 
 		*forge_dir* (``str``) is the Minecraft Forge source directory.
@@ -107,6 +107,10 @@ class InitCommand(object):
 		- `1`: print some debugging information.
 
 		- `2`: print lots of debugging information.
+
+		*force* (``bool``) forces the initialization of a new Minecraft Mod.
+		If ``False``, a new Mod cannot be initialized if *mod_dir* is not
+		empty. Default is ``None`` for ``False``.
 		"""
 
 		self.build_dir = build_dir
@@ -117,6 +121,11 @@ class InitCommand(object):
 		self.config_file = config_file
 		"""
 		*config* (``str``) is the mcpackage configuration file to generate.
+		"""
+
+		self.force = force or False
+		"""
+		*force* (``bool``) forces the initialization of a new Minecraft Mod.
 		"""
 
 		self.forge_dir = forge_dir
@@ -231,8 +240,7 @@ class InitCommand(object):
 		try:
 			result = self.run_work()
 		except:
-			self.log.exception()
-			self.log.error("Failed to create mod.")
+			self.log.error("Failed to create mod.", exc_info=sys.exc_info())
 			result = 1
 		if result:
 			self.log.info("Exiting because of error.")
@@ -252,11 +260,12 @@ class InitCommand(object):
 			if e.errno != errno.EEXIST:
 				raise
 
-		# If mod directory is not empty, report error and stop. This is so
-		# we do not accidently overwrite files belonging an existing mod.
-		for _ in os.walk(self.mod_dir):
-			self.log.error("Mod directory {!r} is not empty.".format(self.mod_dir))
-			return 1
+		if not self.force:
+			# If mod directory is not empty, report error and stop. This is so
+			# we do not accidently overwrite files belonging an existing mod.
+			for _ in os.walk(self.mod_dir):
+				self.log.error("Mod directory {!r} is not empty.".format(self.mod_dir))
+				return 1
 
 		# Display warning if forge directory does not exist.
 		forge_dir = os.path.normpath(os.path.join(self.mod_dir, self.forge_dir))
@@ -299,6 +308,7 @@ class InitCommand(object):
 		config_file = MCPACKAGE_TEMPLATE_FILE[self.mod_type]
 		self.log.info("Load {!r}.".format(config_file))
 		config_tpl = pkg_resources.resource_string(MCPACKAGE, config_file)
+		config_tpl = config_tpl.decode('UTF-8')
 		del config_file
 
 		# Generate mcpackage configuration.
@@ -324,6 +334,7 @@ class InitCommand(object):
 		info_file = MCMOD_TEMPLATE_FILE[self.mod_type]
 		self.log.info("Load {!r}.".format(info_file))
 		info_tpl = pkg_resources.resource_string(MCPACKAGE, info_file)
+		info_tpl = info_tpl.decode('UTF-8')
 		del info_file
 
 		# Generate mcmod info.
@@ -352,14 +363,16 @@ class InitCommand(object):
 		mod_file = JAVA_MOD_TEMPLATE_FILE[self.mod_type]
 		self.log.info("Load {!r}.".format(mod_file))
 		mod_tpl = pkg_resources.resource_string(MCPACKAGE, mod_file)
+		mod_tpl = mod_tpl.decode('UTF-8')
 		del mod_file
 
 		# Generate java mod file.
-		mod_file = os.path.join(namespace_dir, self.mod_name + '.java')
+		mod_file = os.path.join(namespace_dir, self.mod_class + '.java')
 		self.log.info("Generate {!r}.".format(os.path.basename(mod_file)))
 		mod_str = string.Template(mod_tpl).substitute(
 			mod_class=self.mod_class,
 			mod_id=self.mod_id,
+			mod_name=self.mod_name,
 			mod_package=self.mod_namespace,
 		)
 		del mod_tpl
@@ -385,6 +398,7 @@ class InitCommand(object):
 			init_file = PYTHON_INIT_TEMPLATE_FILE[self.mod_type]
 			self.log.info("Load {!r}.".format(init_file))
 			init_tpl = pkg_resources.resource_string(MCPACKAGE, init_file)
+			init_tpl = init_tpl.decode('UTF-8')
 			del init_file
 
 			# Generate python init file.
@@ -398,7 +412,7 @@ class InitCommand(object):
 
 			# Save python init file.
 			self.log.info("Create {!r}.".format(init_file))
-			with io.open(init_file, mode='w', encoding='UTF-8'):
+			with io.open(init_file, mode='w', encoding='UTF-8') as fh:
 				fh.write(init_str)
 			del init_str
 			del init_file
@@ -407,6 +421,7 @@ class InitCommand(object):
 			mod_file = PYTHON_MOD_TEMPLATE_FILE[self.mod_type]
 			self.log.info("Load {!r}.".format(mod_file))
 			mod_tpl = pkg_resources.resource_string(MCPACKAGE, mod_file)
+			mod_tpl = mod_tpl.decode('UTF-8')
 			del mod_file
 
 			# Generate python mod file.
@@ -420,7 +435,7 @@ class InitCommand(object):
 
 			# Save python mod file.
 			self.log.info("Create {!r}.".format(mod_file))
-			with io.open(mod_file, mode='w', encoding='UTF-8'):
+			with io.open(mod_file, mode='w', encoding='UTF-8') as fh:
 				fh.write(mod_str)
 			del mod_str
 			del mod_file
