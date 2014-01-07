@@ -105,7 +105,7 @@ class BuildCommand(object):
 	Mod.
 	"""
 
-	def __init__(self, config_file, verbose=None):
+	def __init__(self, config_file, verbose=None, **_):
 		"""
 		Initializes the ``BuildCommand`` instance.
 
@@ -376,6 +376,7 @@ class BuildCommand(object):
 			raise
 
 		# TODO: Compiling python source files to class files should be done here.
+		# TODO: Python files are not included in package.
 
 		# Obfuscate mod.
 		# - NOTE: I do not have a particularly good reason to use the SRG
