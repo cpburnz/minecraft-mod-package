@@ -6,6 +6,7 @@ from __future__ import print_function, unicode_literals
 
 import errno
 import io
+import itertools
 import logging
 import os
 import os.path
@@ -69,6 +70,10 @@ DEFAULT_CONFIG = {
 		'extra': [],
 	}
 }
+
+JYTHON_WINDOWS_EXE = None # TODO
+
+JYTHON_LINUX_EXE = 'jython'
 
 #: The keys in the configuration that are directory paths which need to
 #: be normalized.
@@ -323,42 +328,68 @@ class BuildCommand(object):
 		# Find Forge and MCP source files.
 		mcp_src_dir = os.path.join(mcp_dir, 'src', 'minecraft')
 		self.log.info("Scan {!r}.".format(util.short_path(mcp_src_dir, forge_dir)))
-		mcp_src_files = [file_path for file_path in pathspec.iter_tree(mcp_src_dir)]
-
-		# List of compiled class files. This only includes the compiled
-		# class files for the project.
-		class_files = {}
+		mcp_src_files = list(pathspec.iter_tree(mcp_src_dir))
 
 		# Find java source files.
 		source_dir = self.config['source']['dir']
 		self.log.info("Scan {!r}.".format(os.path.basename(source_dir)))
 		dest_dir = os.path.join(build_dir, 'src', 'minecraft')
 		java_spec = self.config['source']['java']
-		source_files = []
+		java_class_files = {}
+		java_source_files = []
 		file_path, class_file, src_file, dest_file = None, None, None, None
 		for file_path in java_spec.match_tree(source_dir):
 			# Record java source file to be copied later.
-			source_files.append(file_path)
+			java_source_files.append(file_path)
 
-			# Record source and destination for java source file for java
-			# class file.
+			# Record source and destination of java source file for java class
+			# file.
 			class_file = os.path.splitext(file_path)[0] + '.class'
 			src_file = os.path.join(source_dir, file_path)
-			dest_file = os.path.join(dest_dir, file_path)
-			class_files[class_file] = {'src': src_file, 'dest': dest_file}
+			#dest_file = os.path.join(dest_dir, file_path)
+			java_class_files[class_file] = {
+				'src': src_file,
+				#'dest': dest_file,
+			}
 		del file_path, class_file, src_file, dest_file
+		del java_spec
+
+		# Find python source files.
+		python_spec = self.config['source']['python']
+		python_class_files = {}
+		python_source_files = []
+		file_path, class_file, src_file, dest_file = None, None, None, None
+		for file_path in python_spec.match_tree(source_dir):
+			# Record python source file to be copied later.
+			python_source_files.append(file_path)
+
+			# Record source and destination of python source file for python
+			# class file.
+			class_file = os.path.splitext(file_path)[0] + '$py.class'
+			src_file = os.path.join(source_dir, file_path)
+			#dest_file = os.path.join(dest_dir, file_path)
+			python_class_files[class_file] = {
+				'src': src_file,
+				#'dest': dest_file,
+			}
+		del file_path, class_file, src_file, dest_file
+		del python_spec
 
 		# Copy source files to the "src" directory. This is the aggregation
 		# of all java source code which includes the source for Forge, MCP,
-		# and the project source code.
+		# and the project source code (including the python source code).
+		dest_files = set()
+		dest_files.update(mcp_src_files)
+		dest_files.update(java_source_files)
+		dest_files.update(python_source_files)
 
 		# Copy Forge and MCP source.
 		self.log.info("Copy from {!r} to {!r}.".format(util.short_path(mcp_src_dir, forge_dir), util.short_path(dest_dir, build_dir)))
-		util.sync_files(mcp_src_dir, dest_dir, files=mcp_src_files, keep=source_files)
+		util.sync_files(mcp_src_dir, dest_dir, files=mcp_src_files, keep=dest_files)
 
-		# Copy java source files to build directory.
+		# Copy java and python source files to build directory.
 		self.log.info("Copy from {!r} to {!r}.".format(os.path.basename(source_dir), util.short_path(dest_dir, build_dir)))
-		util.sync_files(source_dir, dest_dir, files=source_files, keep=mcp_src_files)
+		util.sync_files(source_dir, dest_dir, files=itertools.chain(java_source_files, python_source_files), keep=dest_files)
 
 		# Compile mod.
 		self.log.info("Compile mod.")
@@ -374,9 +405,6 @@ class BuildCommand(object):
 			e.args += (command[0],)
 			e.filename = command[0]
 			raise
-
-		# TODO: Compiling python source files to class files should be done here.
-		# TODO: Python files are not included in package.
 
 		# Obfuscate mod.
 		# - NOTE: I do not have a particularly good reason to use the SRG
@@ -396,30 +424,62 @@ class BuildCommand(object):
 			e.filename = command[0]
 			raise
 
+		# Compile python source files to class files.
+		if python_class_files:
+			self.log.info("Compile python source.")
+			if IS_WINDOWS:
+				# TODO: Locate jython on windows.
+				raise NotImplementedError("TODO")
+			else:
+				command = ['jython']
+			command += ['-m', 'compileall', dest_dir]
+			try:
+				subprocess.check_call(command, close_fds=True)
+			except OSError as e:
+				# Add the executable file to the error.
+				e.args += (command[0],)
+				e.filename = command[0]
+				raise
+
 		# Package mod in JAR.
 		name = self.config['name']
 		mod_jar_file = os.path.join(build_dir, name + '.jar')
 		self.log.info("Create mod jar at {!r}.".format(util.short_path(mod_jar_file, build_dir)))
 		with zipfile.ZipFile(mod_jar_file, 'w', zipfile.ZIP_DEFLATED) as mod_fh:
-			self.log.info("Package compiled code.")
 
-			# Package compiled code. Only copy compiled java classes
+			# Package compiled java code. Only copy compiled java classes
 			# originating from the source directory.
 			# - NOTE: Forge version 1.6.2-9.10.0.804 fills the reobf directory
 			#   with the Forge, MCP, and Minecraft compiled classes while
 			#   Forge version 1.6.4-9.11.0.881 only has the mod's compiled
 			#   classes.
+			self.log.info("Package compiled java code.")
 			reobf_dir = os.path.join(build_dir, 'reobf', 'minecraft')
 			self.log.info("Copy {!r} into {!r}.".format(util.short_path(reobf_dir, build_dir), util.short_path(mod_jar_file, build_dir)))
-			path, class_file, class_info, src_file = None, None, None, None
-			for class_file, class_info in class_files.iteritems():
+			class_file, class_info, src_file = None, None, None
+			for class_file, class_info in java_class_files.items():
 				src_file = os.path.join(reobf_dir, class_file)
 				if os.path.exists(src_file):
 					self.log.debug("Copy {!r} to {!r}.".format(util.short_path(src_file, reobf_dir), class_file))
 					mod_fh.write(src_file, arcname=class_file)
 				else:
-					self.log.warn("Source file {!r} was not compiled to class file {!r}.".format(util.short_path(class_info['src'], source_dir), util.short_path(src_file, reobf_dir)))
-			del path, class_file, class_info, src_file
+					self.log.warning("Source file {!r} was not compiled to class file {!r}.".format(util.short_path(class_info['src'], source_dir), util.short_path(src_file, reobf_dir)))
+			del class_file, class_info, src_file
+			del java_class_files
+
+			# Package compiled python code.
+			# - TODO: Copy source file as well.
+			if python_class_files:
+				self.log.info("Package compiled python code.")
+				class_file, class_info, src_file = None, None, None
+				for class_file, class_info in python_class_files.items():
+					src_file = os.path.join(dest_dir, class_file)
+					if os.path.exists(src_file):
+						self.log.debug("Copy {!r} to {!r}.".format(util.short_path(src_file, dest_dir), class_file))
+						mod_fh.write(src_file, arcname=class_file)
+					else:
+						self.log.warning("Source file {!r} was not compiled to class file {!r}.".format(util.short_path(class_info['src'], source_dir), util.short_path(src_file, dest_dir)))
+				del class_file, class_info, src_file
 
 			# Copy assets/extra files.
 			extra_spec = self.config['source']['extra']
@@ -432,6 +492,7 @@ class BuildCommand(object):
 					self.log.debug("Copy {!r} to {!r}.".format(util.short_path(src_file, source_dir), dest_file))
 					mod_fh.write(src_file, arcname=dest_file)
 				del file_path, src_file, dest_file
+			del extra_spec
 
 			# Merge (package) additional libraries into JAR.
 			lib_spec = self.config['library']['package']
@@ -446,5 +507,6 @@ class BuildCommand(object):
 							if not info.filename.startswith('META-INF'):
 								mod_fh.writestr(info.filename, lib_fh.read(info.filename), compress_type=info.compress_type)
 				del path, lib_file, info
+			del lib_spec
 
 		return 0

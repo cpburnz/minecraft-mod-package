@@ -30,13 +30,23 @@ TODO
 
 - Tutorial for how to build and package *pymod*.
 
+- Make sure Python 3 and Jython 2.7 are fully supported.
+
+- Make sure Windows is supported.
+
 - Generate documentation.
 
   - https://github.com/MinecraftForge/FML/wiki/FML-mod-information-file
 
+  - Document Jython installation:
+
+    - http://stackoverflow.com/a/5849449/369450
+
 - Later:
 
   - Make "init" command interactive.
+
+  - Make sure Mac is supported.
 
 
 Tutorial
@@ -82,6 +92,11 @@ Required Python Modules:
 
 - `pathspec`_ for file pattern matching.
 
+Additional Requirements for making Python Minecraft Mods:
+
+- Java
+- Jython
+
 Required Development Environment:
 
 - Forge (TODO: DOCUMENT USE)
@@ -90,6 +105,8 @@ Required Development Environment:
 .. _`setuptools`: https://pypi.python.org/pypi/setuptools
 .. _`PyYAML`: https://pypi.python.org/pypi/PyYAML
 .. _`pathspec`: https://pypi.python.org/pypi/pathspec
+.. _`Java`:
+.. _`Jython`: http://www.jython.org/downloads.html
 .. _`Forge`: http://files.minecraftforge.net
 .. _`MCP`: http://mcp.ocean-labs.de/download.php?list.2
 
