@@ -68,12 +68,22 @@ DEFAULT_CONFIG = {
 		'python': ['*.py'],
 		# Patterns to match assets or any additional files to package.
 		'extra': [],
-	}
+	},
+	# Settings for Jython.
+	'jython': {
+		# The Jython executable. If this is null, it will be searched for in
+		# standard locations. If the jython executable cannot be found, set
+		# *jython_jar* and optionally *java_exe* will be attempted.
+		'jython_exe': null,
+		# The Jython JAR to execute using *java_exe*. If *jython_exe* could not be
+		# found, this must be set.
+		'jython_jar': null,
+		# The Java executable to execute the *jython_jar* with. If this is null, it
+		# will be searched for in standard locations. If this cannot be found, you
+		# must manually specify its location.
+		'java_exe': null,
+	},
 }
-
-JYTHON_WINDOWS_EXE = None # TODO
-
-JYTHON_LINUX_EXE = 'jython'
 
 #: The keys in the configuration that are directory paths which need to
 #: be normalized.
@@ -426,12 +436,45 @@ class BuildCommand(object):
 
 		# Compile python source files to class files.
 		if python_class_files:
-			self.log.info("Compile python source.")
-			if IS_WINDOWS:
-				# TODO: Locate jython on windows.
-				raise NotImplementedError("TODO")
+			# Find jython.
+			self.log.info("Find Jython.")
+			command = None
+			jython_exe = self.config['jython']['jython_exe'] or util.find_executable('jython')
+			if jython_exe:
+				if not os.path.exists(jython_exe):
+					self.log.error("Jython executable could not be found at {!r}. Set Jython executable properly in configuration {!r}.".format(jython_exe, self.config_file))
+					return 1
+				self.log.debug("jython:{!r}".format(jython_exe))
+				command = [jython_exe]
 			else:
-				command = ['jython']
+				# Find java.
+				# - TODO: Report errors when Jython JAR or Java EXE do not actually exist.
+				java_exe = self.config['jython']['java_exe'] or util.find_executable('java')
+				jython_jar = self.config['jython']['jython_jar']
+				if not java_exe and not jython_jar:
+					# No java executable and no jython jar.
+					self.log.error("Jython executable could not be found.")
+					self.log.error("Java executable could not be found.")
+					self.log.error("Jython JAR could not be found.")
+					self.log.error("You must set either Jython executable or Java executable with Jython JAR in configuration {!r}.".format(self.config_file))
+					return 1
+				elif java_exe and not jython_jar:
+					# Found java executable but not jython jar.
+					self.log.error("Jython executable could not be found.")
+					self.log.error("Jython JAR could not be found.")
+					self.log.error("You must set either Jython executable or Jython JAR in configuration {!r}.".format(self.config_file))
+					return 1
+				elif not java_exe and jython_jar:
+					# No java executable but we found jython jar.
+					self.log.error("Java executable could not be found.")
+					self.log.error("You must set Java executable in configuration {!r}.".format(self.config_file))
+					return 1
+				self.log.debug("java:{!r}".format(java_exe))
+				self.log.debug("jython:{!r}".format(jython_jar))
+				command = [java_exe, '-jar', jython_jar]
+
+			# Compile python source with jython.
+			self.log.info("Compile python source.")
 			command += ['-m', 'compileall', dest_dir]
 			try:
 				subprocess.check_call(command, close_fds=True)
@@ -473,12 +516,18 @@ class BuildCommand(object):
 				self.log.info("Package compiled python code.")
 				class_file, class_info, src_file = None, None, None
 				for class_file, class_info in python_class_files.items():
+					# Copy python class file.
 					src_file = os.path.join(dest_dir, class_file)
 					if os.path.exists(src_file):
 						self.log.debug("Copy {!r} to {!r}.".format(util.short_path(src_file, dest_dir), class_file))
 						mod_fh.write(src_file, arcname=class_file)
 					else:
 						self.log.warning("Source file {!r} was not compiled to class file {!r}.".format(util.short_path(class_info['src'], source_dir), util.short_path(src_file, dest_dir)))
+					# Copy python source file.
+					# - TODO: class_info['src'] needs to be relative not absolute.
+					if os.path.exists(class_info['src']):
+						self.log.debug("Copy {!r} to {!r}.".format(util.short_path(class_info['src'], source_dir), ))
+						mod_fh.write() # TODO
 				del class_file, class_info, src_file
 
 			# Copy assets/extra files.

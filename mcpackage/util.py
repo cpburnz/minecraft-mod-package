@@ -11,10 +11,45 @@ import io
 import os
 import os.path
 import shutil
+import sys
 import textwrap
 
 import yaml
 import yaml.scanner
+
+def find_executable(exe, path=None):
+	"""
+	Find the specified executable.
+
+	*exe* (``str``) is the name of the executable.
+
+	*path* (``str``) is the path to search which will be split by
+	``os.pathsep``. Default is ``None`` for ``os.environ['PATH']``.
+
+	Returns the file path of the specified executable (``str``) if it
+	could be found; otherwise, ``None``.
+	"""
+	if os.path.isfile(exe):
+		return exe
+
+	if path is None:
+		path = os.environ['PATH']
+	paths = path.split(os.pathsep)
+	base, ext = os.path.splitext(exe)
+
+	if get_platform().startswith('win'):
+		# Check for supported windows extensions.
+		exts = os.environ['PATHEXT'].upper().split(os.pathsep)
+		if ext.upper() in exts:
+			exts = [ext]
+	else:
+		exts = [ext]
+
+	for path in paths:
+		for ext in exts:
+			exe = os.path.join(path, base + ext)
+			if os.path.isfile(exe):
+				return exe
 
 def get_line(file, line): # pylint: disable=W0622
 	"""
@@ -52,6 +87,17 @@ def get_nested_value(data, keys):
 	Returns the nested value (``object``).
 	"""
 	return functools.reduce(dict.get, keys, data)
+
+def get_platform():
+	"""
+	Returns the platform name (``str``).
+	"""
+	if sys.platform.lower().startswith('java'):
+		# We are actually running Jython, get platform from Java.
+		import java.lang # pylint: disable=F0401
+		return java.lang.System.getProperty('os.name').lower()
+	# Normal platform.
+	return sys.platform
 
 def load_config(file): # pylint: disable=W0622
 	"""

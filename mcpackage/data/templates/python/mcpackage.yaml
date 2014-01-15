@@ -31,3 +31,16 @@ source:
   # Patterns used to match assets or any additional files to package.
   extra:
     - '/mcmod.info'
+# Settings for Jython. Jython is used to compile Python source files.
+jython:
+	# The Jython executable. If this is null, it will be searched for in
+	# standard locations. If the jython executable cannot be found, set
+	# *jython_jar* and optionally *java_exe* will be attempted.
+	jython_exe: null
+	# The Jython JAR to execute using *java_exe*. If *jython_exe* could not be
+	# found, this must be set.
+	jython_jar: null
+	# The Java executable to execute the *jython_jar* with. If this is null, it
+	# will be searched for in standard locations. If this cannot be found, you
+	# must manually specify its location.
+	java_exe: null
