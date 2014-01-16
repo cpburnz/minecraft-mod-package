@@ -17,7 +17,7 @@ import textwrap
 import yaml
 import yaml.scanner
 
-def find_executable(exe, path=None):
+def find_exe(exe, path=None):
 	"""
 	Find the specified executable.
 

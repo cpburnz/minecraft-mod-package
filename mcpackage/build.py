@@ -15,9 +15,9 @@ import sys
 import traceback
 import zipfile
 try:
-	import ConfigParser as configparser
-except ImportError:
 	import configparser # pylint: disable=F0401
+except ImportError:
+	import ConfigParser as configparser
 
 import pathspec
 
@@ -74,14 +74,14 @@ DEFAULT_CONFIG = {
 		# The Jython executable. If this is null, it will be searched for in
 		# standard locations. If the jython executable cannot be found, set
 		# *jython_jar* and optionally *java_exe* will be attempted.
-		'jython_exe': null,
+		'jython_exe': None,
 		# The Jython JAR to execute using *java_exe*. If *jython_exe* could not be
 		# found, this must be set.
-		'jython_jar': null,
+		'jython_jar': None,
 		# The Java executable to execute the *jython_jar* with. If this is null, it
 		# will be searched for in standard locations. If this cannot be found, you
 		# must manually specify its location.
-		'java_exe': null,
+		'java_exe': None,
 	},
 }
 
@@ -439,38 +439,54 @@ class BuildCommand(object):
 			# Find jython.
 			self.log.info("Find Jython.")
 			command = None
-			jython_exe = self.config['jython']['jython_exe'] or util.find_executable('jython')
+			jython_exe = self.config['jython']['jython_exe'] or util.find_exe('jython')
 			if jython_exe:
-				if not os.path.exists(jython_exe):
-					self.log.error("Jython executable could not be found at {!r}. Set Jython executable properly in configuration {!r}.".format(jython_exe, self.config_file))
+				if not os.path.isfile(jython_exe):
+					self.log.error("Jython executable could not be found at {!r}.".format(jython_exe))
+					self.log.error("You must set the Jython executable in the configuration {!r}.".format(self.config_file))
 					return 1
 				self.log.debug("jython:{!r}".format(jython_exe))
 				command = [jython_exe]
+
 			else:
 				# Find java.
-				# - TODO: Report errors when Jython JAR or Java EXE do not actually exist.
-				java_exe = self.config['jython']['java_exe'] or util.find_executable('java')
+				java_exe = self.config['jython']['java_exe'] or util.find_exe('java')
+				if not java_exe:
+					java_error = "Java executable could not be found."
+				elif not os.path.isfile(java_exe):
+					java_error = "Java executable could not be found at {!r}.".format(java_exe)
+				else:
+					java_error = None
+
 				jython_jar = self.config['jython']['jython_jar']
-				if not java_exe and not jython_jar:
+				if not jython_jar:
+					jar_error = "Jython JAR could not be found."
+				elif not os.path.isfile(jython_jar):
+					jar_error = "Jython JAR could not be found at {!r}.".format(jython_jar)
+				else:
+					jar_error = None
+				jython_error = "Jython executable could not be found."
+
+				if java_error and jar_error:
 					# No java executable and no jython jar.
-					self.log.error("Jython executable could not be found.")
-					self.log.error("Java executable could not be found.")
-					self.log.error("Jython JAR could not be found.")
-					self.log.error("You must set either Jython executable or Java executable with Jython JAR in configuration {!r}.".format(self.config_file))
+					self.log.error(jython_error)
+					self.log.error(java_error)
+					self.log.error(jar_error)
+					self.log.error("You must set either the Jython executable or the Java executable with the Jython JAR in the configuration {!r}.".format(self.config_file))
 					return 1
-				elif java_exe and not jython_jar:
+				elif not java_error and jar_error:
 					# Found java executable but not jython jar.
-					self.log.error("Jython executable could not be found.")
-					self.log.error("Jython JAR could not be found.")
-					self.log.error("You must set either Jython executable or Jython JAR in configuration {!r}.".format(self.config_file))
+					self.log.error(jython_error)
+					self.log.error(jar_error)
+					self.log.error("You must set either the Jython executable or the Jython JAR in the configuration {!r}.".format(self.config_file))
 					return 1
-				elif not java_exe and jython_jar:
+				elif java_error and not jar_error:
 					# No java executable but we found jython jar.
-					self.log.error("Java executable could not be found.")
-					self.log.error("You must set Java executable in configuration {!r}.".format(self.config_file))
+					self.log.error(java_error)
+					self.log.error("You must set the Java executable in the configuration {!r}.".format(self.config_file))
 					return 1
 				self.log.debug("java:{!r}".format(java_exe))
-				self.log.debug("jython:{!r}".format(jython_jar))
+				self.log.debug("jar:{!r}".format(jython_jar))
 				command = [java_exe, '-jar', jython_jar]
 
 			# Compile python source with jython.
