@@ -4,6 +4,7 @@ This script compiles, obfuscates, and packages a Minecraft Mod.
 """
 from __future__ import print_function, unicode_literals
 
+import distutils.version
 import errno
 import io
 import itertools
@@ -14,23 +15,26 @@ import subprocess
 import sys
 import traceback
 import zipfile
+from distutils.version import StrictVersion
 try:
 	import configparser # pylint: disable=F0401
 except ImportError:
 	import ConfigParser as configparser
 
 import pathspec
+if StrictVersion(pathspec.__version__) < StrictVersion('0.3'):
+	raise ImportError("pathspec version {!r} is installed, version {!r} is required.".format(pathspec.__version__, '0.3'))
 
 from . import util
 
 #: The file to log to.
-LOG_FILE = 'mcpacakge.log'
+LOG_FILE = 'mcpackage.log'
 
 #: The name of the MCP configuration.
 MCP_CONFIG_FILE = 'mcp.cfg'
 
 #: Whether we are running Windows or another OS.
-IS_WINDOWS = sys.platform.startswith('win')
+IS_WINDOWS = util.get_system() == 'Windows'
 
 #: The default configuration.
 DEFAULT_CONFIG = {
@@ -75,12 +79,12 @@ DEFAULT_CONFIG = {
 		# standard locations. If the jython executable cannot be found, set
 		# *jython_jar* and optionally *java_exe* will be attempted.
 		'jython_exe': None,
-		# The Jython JAR to execute using *java_exe*. If *jython_exe* could not be
-		# found, this must be set.
+		# The Jython JAR to execute using *java_exe*. If *jython_exe* could
+		# not be found, this must be set.
 		'jython_jar': None,
-		# The Java executable to execute the *jython_jar* with. If this is null, it
-		# will be searched for in standard locations. If this cannot be found, you
-		# must manually specify its location.
+		# The Java executable to execute the *jython_jar* with. If this is
+		# null, it will be searched for in standard locations. If this can
+		# not be found, you must manually specify its location.
 		'java_exe': None,
 	},
 }
@@ -190,7 +194,7 @@ class BuildCommand(object):
 		pathspec_keys, lines, spec = None, None, None
 		for pathspec_keys in CONFIG_PATHSPECS:
 			lines = util.get_nested_value(self.config, pathspec_keys)
-			spec = pathspec.PathSpec.from_lines(pathspec.GitIgnorePattern, lines)
+			spec = pathspec.PathSpec.from_lines('gitignore', lines)
 			util.set_nested_value(self.config, pathspec_keys, spec)
 		del pathspec_keys, lines, spec
 
@@ -404,7 +408,7 @@ class BuildCommand(object):
 		# Compile mod.
 		self.log.info("Compile mod.")
 		if IS_WINDOWS:
-			command = ['recompile.bat'] # pylint: disable=W0621
+			command = ['recompile.bat']
 		else:
 			command = ['./recompile.sh']
 		command += ['-c', mcp_file]

@@ -10,8 +10,8 @@ import itertools
 import io
 import os
 import os.path
+import platform
 import shutil
-import sys
 import textwrap
 
 import yaml
@@ -37,7 +37,7 @@ def find_exe(exe, path=None):
 	paths = path.split(os.pathsep)
 	base, ext = os.path.splitext(exe)
 
-	if get_platform().startswith('win'):
+	if get_system() == 'Windows':
 		# Check for supported windows extensions.
 		exts = os.environ['PATHEXT'].upper().split(os.pathsep)
 		if ext.upper() in exts:
@@ -88,16 +88,18 @@ def get_nested_value(data, keys):
 	"""
 	return functools.reduce(dict.get, keys, data)
 
-def get_platform():
+def get_system():
 	"""
-	Returns the platform name (``str``).
+	Returns the system name (``str``).
 	"""
-	if sys.platform.lower().startswith('java'):
-		# We are actually running Jython, get platform from Java.
-		import java.lang # pylint: disable=F0401
-		return java.lang.System.getProperty('os.name').lower()
-	# Normal platform.
-	return sys.platform
+	system = platform.system()
+	if system == 'Java':
+		system = platform.java_ver()[3][0]
+		if system.startswith('Windows'):
+			system = 'Windows'
+		elif system.startswith('Mac'):
+			system = 'Darwin'
+	return system
 
 def load_config(file): # pylint: disable=W0622
 	"""

@@ -64,7 +64,7 @@ class InitCommand(object):
 	Minecraft Mod.
 	"""
 
-	def __init__(self, mod_name, mod_namespace, mod_type, mod_dir, config_file, forge_dir, build_dir, library_dir, source_dir, mod_id=None, mod_class=None, verbose=None, force=None, **_):
+	def __init__(self, mod_name, mod_namespace, mod_type, mod_dir, config_file, forge_dir, build_dir, library_dir, source_dir, mod_id=None, mod_class=None, mc_version=None, verbose=None, force=None, **_):
 		"""
 		Initializes the ``InitCommand`` instance.
 
@@ -98,6 +98,11 @@ class InitCommand(object):
 		*mod_class* (``str``) is the Java class name for the Minecraft Mod.
 		Default is ``None`` to remove non-alphanumeric characters from
 		*mod_name* and append with 'Mod' if it does not end with 'Mod'.
+
+		*mc_version* (``str``) is the version of Minecraft being used.
+		Default is ``None`` to determine it from *forge_dir*. If *forge_dir*
+		is not set, the appropriate Minecraft version will have to be set
+		will have to be in "mcmod.info".
 
 		*verbose* (``int``) is the level of verbose debugging information to
 		be printed. Default is ``None`` for `0`.
@@ -137,6 +142,11 @@ class InitCommand(object):
 		"""
 		*library_dir* (``str``) is the directory containing additional
 		libraries required by the mod.
+		"""
+
+		self.mc_version = mc_version
+		"""
+		*mc_version* (``str``) is the version of Minecraft being used.
 		"""
 
 		self.mod_dir = mod_dir
@@ -269,7 +279,28 @@ class InitCommand(object):
 
 		# Display warning if forge directory does not exist.
 		forge_dir = os.path.normpath(os.path.join(self.mod_dir, self.forge_dir))
-		if not os.path.isdir(forge_dir):
+		mcp_mod_info = None
+		if os.path.isdir(forge_dir):
+			# Load MCP mod info file.
+			mcp_info_file = os.path.join(forge_dir, 'mcpmod.info')
+			try:
+				with io.open(mcp_info_file, 'r', encoding='UTF-8') as fh:
+					config = json.load(fh)
+			except IOError as e:
+				if e.errno == errno.ENOENT:
+					self.log.warning("The Minecraft Forge file {!r} does not exist.".format(mcp_info_file))
+				else:
+					raise
+			else:
+				for row in config:
+					if row['modid'] == 'mcp':
+						mcp_mod_info = row
+						break
+				if mcp_mod_info is None:
+					self.log.warning("The Minecraft Forge file {!r} does not contain the 'mcp' mod information.".format(mcp_info_file))
+			del mcp_info_file, config
+
+		else:
 			self.log.warning("The Minecraft Forge directory {!r} does not exist. Ensure it gets created before building.".format(forge_dir))
 		del forge_dir
 
@@ -341,10 +372,11 @@ class InitCommand(object):
 		info_file = os.path.join(source_dir, 'mcmod.info')
 		self.log.info("Generate {!r}.".format(os.path.basename(info_file)))
 		mod_hard_deps = ['Forge']
+		mc_version = self.mc_version or (mcp_mod_info and mcp_mod_info['mcversion']) or "TODO: Required Minecraft version"
 		if self.mod_type == 'python':
 			mod_hard_deps.append('pymod')
 		info_str = string.Template(info_tpl).substitute(
-			mc_version=json_encode('1.6.2'), # TODO: Read the minecraft version from Forge.
+			mc_version=json_encode(mc_version),
 			mod_id=json_encode(self.mod_id),
 			mod_name=json_encode(self.mod_name),
 			mod_hard_deps=json_encode(mod_hard_deps),

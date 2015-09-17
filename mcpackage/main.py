@@ -109,6 +109,12 @@ def run(argv):
 		The directory to contain the source code for the Minecraft Mod.
 		Default is %(default)r.
 	""")
+	group.add_argument('--mc-version', default=None, metavar="VERSION", help="""
+		The version of Minecraft being used (e.g., "1.7.2"). Default is to
+		determine it from *forge-dir*. If *forge-dir* is not set, the
+		appropriate Minecraft version will have to be set will have to be in
+		"mcmod.info".
+	""")
 
 	group = parser_init.add_argument_group(title="Optional Arguments")
 	parser_init.add_argument('-v', '--verbose', action='count', help="""
