@@ -1,4 +1,12 @@
 
+**OBSOLETE**
+============
+
+This project is obsolete and has been abandoned. Use `ForgeGradle`_.
+
+.. _`ForgeGradle`: https://github.com/MinecraftForge/ForgeGradle
+
+
 *mcpackage*: Minecraft Mod Packaging Tool
 =========================================
 
@@ -105,7 +113,6 @@ Required Development Environment:
 .. _`setuptools`: https://pypi.python.org/pypi/setuptools
 .. _`PyYAML`: https://pypi.python.org/pypi/PyYAML
 .. _`pathspec`: https://pypi.python.org/pypi/pathspec
-.. _`Java`:
 .. _`Jython`: http://www.jython.org/downloads.html
 .. _`Forge`: http://files.minecraftforge.net
 .. _`MCP`: http://mcp.ocean-labs.de/download.php?list.2
