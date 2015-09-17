@@ -4,7 +4,7 @@
 
 This project is obsolete and has been abandoned. Use `ForgeGradle`_.
 
-.. _`ForgeGradle`: https://github.com/MinecraftForge/ForgeGradle
+.. _`ForgeGradle`: https://github.com/MinecraftForge/ForgeGradle/wiki
 
 
 *mcpackage*: Minecraft Mod Packaging Tool
